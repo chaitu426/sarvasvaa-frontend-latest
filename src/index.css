@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🌌 Ultra Premium SaaS Theme with Deep Navy Blue Accent */
+
+@layer base {
+  :root {
+    /* Base colors - Dark Neutral Surface */
+    --background: 225 10% 8%;         /* Deep Charcoal Navy */
+    --foreground: 210 15% 96%;        /* Soft Light Gray */
+
+    /* Cards, Sections, Popovers */
+    --card: 225 8% 10%;
+    --card-foreground: 210 15% 96%;
+
+    --popover: 225 8% 10%;
+    --popover-foreground: 210 15% 96%;
+
+    /* Primary - Premium Blue */
+    --primary: 218 100% 60%;          /* Premium Blue (Linear-like) */
+    --primary-foreground: 210 20% 98%;
+
+    /* Secondary - Soft Muted Gray Blue */
+    --secondary: 225 10% 16%;
+    --secondary-foreground: 210 15% 96%;
+
+    /* Muted Text & Backgrounds */
+    --muted: 225 10% 20%;
+    --muted-foreground: 210 10% 65%;
+
+    /* Accent - Highlight color (for focus rings/buttons) */
+    --accent: 218 100% 60%;
+    --accent-foreground: 210 20% 98%;
+
+    /* System Colors */
+    --success: 148 70% 40%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 38 100% 50%;
+    --warning-foreground: 0 0% 98%;
+
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 210 15% 96%;
+
+    /* Borders, Inputs, Rings */
+    --border: 225 10% 22%;
+    --input: 225 10% 22%;
+    --ring: 218 100% 60%;
+
+    /* Radius */
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight;
+  }
+
+  button {
+    @apply transition duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+}
