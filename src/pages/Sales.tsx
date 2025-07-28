@@ -67,7 +67,7 @@ export default function Sales() {
     payment_status: "unpaid",
   });
 
-  const token =localStorage.getItem("dairy_token");
+  const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
 
   const fetchSales = async () => {
@@ -130,6 +130,32 @@ export default function Sales() {
     }
   };
 
+  const handleEditSale = async () => {
+    if (!editing) return;
+    try {
+      setIsSubmitting(true);
+      await axios.put(`${apiUrl}/sales/${editing.sale_id}`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEditing(null);
+      setFormData({
+        date: new Date().toISOString().split("T")[0],
+        customer: "",
+        product_id: "",
+        quantity: "",
+        rate: "",
+        total: "",
+        payment_status: "unpaid",
+      });
+      setOpenDialog(false);
+      fetchSales();
+    } catch (err) {
+      console.error("Update failed:", err);
+    }
+    setIsSubmitting(false);
+  };
+
+
   useEffect(() => {
     fetchSales();
     fetchProducts();
@@ -146,15 +172,29 @@ export default function Sales() {
         </div>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormData({
+                  date: new Date().toISOString().split("T")[0],
+                  customer: "",
+                  product_id: "",
+                  quantity: "",
+                  rate: "",
+                  total: "",
+                  payment_status: "unpaid",
+                });
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Sale
             </Button>
           </DialogTrigger>
 
+
           <DialogContent className="sm:max-w-md sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Sale</DialogTitle>
+            <DialogTitle>{editing ? "Edit Sale" : "Add New Sale"}</DialogTitle>
               <DialogDescription>
                 Enter the details of the sale. All fields are required.
               </DialogDescription>
@@ -287,9 +327,11 @@ export default function Sales() {
               <Button variant="outline" onClick={() => setOpenDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateSale} disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Create sale
+              <Button
+                onClick={editing ? handleEditSale : handleCreateSale}
+                disabled={isSubmitting}
+              >
+                {editing ? "Edit Sale" : "Add New Sale"}
               </Button>
             </div>
           </DialogContent>
@@ -338,6 +380,25 @@ export default function Sales() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end md:self-auto">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditing(sale); // Set current sale for editing
+                      setFormData({
+                        date: sale.date,
+                        customer: sale.customer,
+                        product_id: sale.product_id,
+                        quantity: sale.quantity,
+                        rate: sale.rate,
+                        total: sale.total,
+                        payment_status: sale.payment_status,
+                      });
+                      setOpenDialog(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                     <Button
                       size="icon"
                       variant="ghost"
