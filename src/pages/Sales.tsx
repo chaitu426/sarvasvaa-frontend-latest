@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface Product {
   id: string;
@@ -48,13 +49,14 @@ interface Sale {
 }
 
 export default function Sales() {
-  const [sales, setSales] = useState<Sale[]>([]);
+  const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editing, setEditing] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<Sale, "id">>({
     date: new Date().toISOString().split("T")[0],
     customer: "",
@@ -177,7 +179,7 @@ export default function Sales() {
                       onSelect={(date) =>
                         date && setFormData({
                           ...formData,
-                          date: date.toISOString().split("T")[0],
+                          date: format(date, "yyyy-MM-dd"),
                         })
                       }
                       initialFocus
@@ -323,7 +325,7 @@ export default function Sales() {
                       Customer: <span className="font-medium">{sale.customer}</span>
                     </p>
                     <p className="text-muted-foreground">
-                      Product: <span className="capitalize font-medium">{sale.product_id}</span>
+                      Product: <span className="capitalize font-medium">{sale.product_name}</span>
                     </p>
                     <p className="text-muted-foreground">
                       Qty: <span className="font-medium">{sale.quantity}</span> &bull; Rate: ₹
