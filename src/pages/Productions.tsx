@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -26,16 +27,26 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import axios from "axios";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 const token = localStorage.getItem("dairy_token");
 const apiUrl = import.meta.env.VITE_API_URL;
 
+
+
 const initialForm = {
   id: "",
   date: new Date(),
-  milk_used_ltr: "",
   sepration_milk_ltr: "",
   whole_milk_ltr: "",
+  milk_used_ltr: "",
   products: [],
 };
 
@@ -48,6 +59,13 @@ export default function Productions() {
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [groupedProductions, setGroupedProductions] = useState({});
+  const [expandedDates, setExpandedDates] = useState<string[]>([]);
+  const [selectedProduction, setSelectedProduction] = useState(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+
+
 
   const fetchProductions = async () => {
     try {
@@ -56,10 +74,31 @@ export default function Productions() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProductions(res.data);
+
+      // Group by date
+      const grouped = res.data.reduce((acc, prod) => {
+        const date = prod.date;
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(prod);
+        return acc;
+      }, {});
+      setGroupedProductions(grouped);
     } catch (err) {
       console.error("Failed to fetch productions", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openDetailsDialog = async (id: string) => {
+    try {
+      const res = await axios.get(`${apiUrl}/productions/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSelectedProduction(res.data);
+      setDetailsDialogOpen(true);
+    } catch (err) {
+      console.error("Failed to fetch production details", err);
     }
   };
 
@@ -72,34 +111,73 @@ export default function Productions() {
     } catch (err) {
       console.error("Failed to fetch products", err);
     }
-  };
+  }
 
   useEffect(() => {
     fetchProductions();
     fetchProducts();
   }, []);
 
-  const handleProductChange = (id: string, quantity: string) => {
-    const updated = form.products.map((p) =>
-      p.product_id === id ? { ...p, quantity } : p
-    );
-    setForm({ ...form, products: updated });
+  useEffect(() => {
+    const skim = parseFloat(form.sepration_milk_ltr) || 0;
+    const whole = parseFloat(form.whole_milk_ltr) || 0;
+    const total = skim + whole;
+    setForm((prev) => ({
+      ...prev,
+      milk_used_ltr: total.toFixed(2),
+    }));
+  }, [form.sepration_milk_ltr, form.whole_milk_ltr]);
+
+  const handleProductQuantityChange = (product_id: string, quantity: string) => {
+    setForm((prev) => ({
+      ...prev,
+      products: prev.products.map((p) =>
+        p.product_id === product_id ? { ...p, quantity } : p
+      ),
+    }));
   };
 
-  const toggleProduct = (id: string) => {
-    const exists = form.products.find((p) => p.product_id === id);
-    if (exists) {
-      setForm({
-        ...form,
-        products: form.products.filter((p) => p.product_id !== id),
-      });
-    } else {
-      setForm({
-        ...form,
-        products: [...form.products, { product_id: id, quantity: "" }],
-      });
+  const handleProductSelect = (product_id: string) => {
+    const exists = form.products.some((p) => p.product_id === product_id);
+    if (!exists) {
+      const selectedProduct = productsList.find((p) => p.id === product_id);
+
+      // Initialize raw_materials with quantity_used = "" for input
+      const rawMaterialsWithQuantity = selectedProduct?.rawMaterials?.map((rm) => ({
+        raw_material_id: rm.id,
+        name: rm.name,
+        unit: rm.unit,
+        quantity_used: "", // ✅ initialize as empty string
+      })) || [];
+      
+
+      setForm((prev) => ({
+        ...prev,
+        products: [
+          ...prev.products,
+          {
+            product_id,
+            quantity: "",
+            raw_materials: rawMaterialsWithQuantity,
+          },
+        ],
+      }));
     }
   };
+
+
+
+  const handleRawMaterialQuantityChange = (
+    productIndex: number,
+    rawMaterialIndex: number,
+    quantityUsed: string
+  ) => {
+    const updatedProducts = [...form.products];
+    updatedProducts[productIndex].raw_materials[rawMaterialIndex].quantity_used = quantityUsed;
+    setForm({ ...form, products: updatedProducts });
+  };
+
+
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -134,10 +212,27 @@ export default function Productions() {
   };
 
   const handleEdit = (item) => {
-    setForm({ ...item, date: new Date(item.date) });
+    const transformedProducts = item.products.map((p) => ({
+      product_id: p.product_id,
+      quantity: p.quantity,
+      raw_materials: p.rawMaterials?.map((rm) => ({
+        raw_material_id: rm.raw_material_id,
+        name: rm.name,
+        unit: rm.unit,
+        quantity_used: rm.quantity_used,
+      })) || [],
+    }));
+  
+    setForm({
+      ...item,
+      date: new Date(item.date),
+      products: transformedProducts,
+    });
+  
     setEditMode(true);
     setOpen(true);
   };
+  
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -151,6 +246,7 @@ export default function Productions() {
     }
     setDeletingId(null);
   };
+
 
   return (
     <div className="space-y-6 mt-10 sm:px-4 md:px-6">
@@ -185,58 +281,81 @@ export default function Productions() {
             <div className="flex justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : productions.length === 0 ? (
+          ) : Object.keys(groupedProductions).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               No production entries found.
             </div>
           ) : (
-            productions.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="space-y-1">
-                  <p className="font-semibold text-base text-foreground">
-                    {format(new Date(item.date), "PPP")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Milk:{" "}
-                    <span className="font-medium">{item.milk_used_ltr}L</span>{" "}
-                    &bull; Skim Milk:{" "}
-                    <span className="font-medium">
-                      {item.sepration_milk_ltr}L
-                    </span>{" "}
-                    &bull; Whole Milk:{" "}
-                    <span className="font-medium">{item.whole_milk_ltr}L</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}>
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="hover:bg-destructive/10"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deletingId === item.id}
-                  >
-                    {deletingId === item.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                    ) : (
-                      <Trash className="h-4 w-4 text-destructive" />
-                    )}
-                  </Button>
-                </div>
+            Object.entries(groupedProductions as any[]).map(([date, entries]) => (
+              <div key={date} className="border rounded-lg">
+
+
+                <button
+                  onClick={() =>
+                    setExpandedDates((prev) =>
+                      prev.includes(date)
+                        ? prev.filter((d) => d !== date)
+                        : [...prev, date]
+                    )
+                  }
+                  className={cn(
+                    "w-full flex items-center justify-between px-4 py-2 rounded-md bg-muted hover:bg-muted/70 font-medium transition-colors",
+                    expandedDates.includes(date) && "bg-muted/80"
+                  )}
+                >
+                  <span>{format(new Date(date), "PPP")}</span>
+                  {expandedDates.includes(date) ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+
+
+                {expandedDates.includes(date) && (
+                  <div className="space-y-2 p-4">
+                    {entries.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between border border-border bg-background px-4 py-3 rounded-md shadow-sm hover:shadow transition"
+                      >
+                        <div className="space-y-1 cursor-pointer" onClick={() => openDetailsDialog(item.id)}>
+                          <p className="font-medium text-sm">
+                            BATCH NO: {item.batch_no}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}>
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button> */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="hover:bg-destructive/10"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deletingId === item.id}
+                          >
+                            {deletingId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+                            ) : (
+                              <Trash className="h-4 w-4 text-destructive" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}
         </CardContent>
+
       </Card>
 
       {/* Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editMode ? "Edit Production" : "Add Production"}
@@ -246,7 +365,7 @@ export default function Productions() {
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label>Date</Label>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -263,23 +382,16 @@ export default function Productions() {
                   <Calendar
                     mode="single"
                     selected={form.date}
-                    onSelect={(date) =>
-                      setForm({ ...form, date: date ?? new Date() })
-                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        setForm({ ...form, date });
+                        setCalendarOpen(false);
+                      }
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Milk Used (L)</Label>
-              <Input
-                value={form.milk_used_ltr}
-                onChange={(e) =>
-                  setForm({ ...form, milk_used_ltr: e.target.value })
-                }
-              />
             </div>
 
             <div className="grid gap-2">
@@ -303,44 +415,73 @@ export default function Productions() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Products</Label>
-              <div className="space-y-2">
-                {productsList.map((prod) => {
-                  const selected = form.products.find(
-                    (p) => p.product_id === prod.id
-                  );
-                  return (
-                    <div
-                      key={prod.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!selected}
-                        onChange={() => toggleProduct(prod.id)}
+              <Label>Milk Used (L)</Label>
+              <Input readOnly value={form.milk_used_ltr} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Add Product</Label>
+              <Select onValueChange={handleProductSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productsList.map((prod) => (
+                    <SelectItem key={prod.id} value={prod.id}>
+                      {prod.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              {form.products.map((prod) => {
+                const product = productsList.find((p) => p.id === prod.product_id);
+                return (
+                  <div key={prod.product_id} className="p-2 border rounded-md space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-32 font-medium">{product?.name || "Unknown"}</span>
+                      <Input
+                        type="number"
+                        placeholder="Product Quantity"
+                        value={prod.quantity}
+                        onChange={(e) =>
+                          handleProductQuantityChange(prod.product_id, e.target.value)
+                        }
                       />
-                      <span className="w-32">{prod.name}</span>
-                      {selected && (
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          value={selected.quantity}
-                          onChange={(e) =>
-                            handleProductChange(prod.id, e.target.value)
-                          }
-                        />
-                      )}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Render raw materials */}
+                    <div className="ml-4 space-y-2">
+                      {prod.raw_materials?.map((rm, rmIdx) => (
+                        <div key={rm.raw_material_id} className="flex items-center gap-2">
+                          <span className="w-40 text-sm text-muted-foreground">
+                            {rm.name} ({rm.unit})
+                          </span>
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            value={rm.quantity_used}
+                            onChange={(e) =>
+                              handleRawMaterialQuantityChange(
+                                form.products.findIndex((p) => p.product_id === prod.product_id),
+                                rmIdx,
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
             </div>
           </div>
 
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -350,6 +491,65 @@ export default function Productions() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-xl sm:max-w-md max-h-[80vh] overflow-y-auto border border-border shadow-xl bg-background">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-primary">Production Details</DialogTitle>
+          </DialogHeader>
+
+          {selectedProduction ? (
+            <div className="space-y-4 text-sm text-foreground">
+              <div className="flex justify-between">
+                <span className="font-medium">Date:</span>
+                <span>{format(new Date(selectedProduction.date), "PPP")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Batch No:</span>
+                <span>{selectedProduction.batch_no}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Milk Used:</span>
+                <span>{selectedProduction.milk_used_ltr} L</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Skim Milk:</span>
+                <span>{selectedProduction.sepration_milk_ltr} L</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Whole Milk:</span>
+                <span>{selectedProduction.whole_milk_ltr} L</span>
+              </div>
+
+              <div className="space-y-4">
+                <p className="font-medium">Products:</p>
+                {selectedProduction.products.map((product) => (
+                  <div key={product.product_id} className="ml-2 space-y-2">
+                    <div className="text-muted-foreground">
+                      <span className="text-foreground font-medium">{product.product_name || "Unnamed"}</span> — {product.quantity} {product.unit}
+                    </div>
+                    {product.rawMaterials && product.rawMaterials.length > 0 && (
+                      <div className="ml-4">
+                        <p className="text-sm font-medium mb-1 text-foreground">Raw Materials:</p>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                          {product.rawMaterials.map((rm) => (
+                            <li key={rm.raw_material_id}>{rm.name || "Unnamed"}  -  {rm.quantity_used} {rm.unit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-sm">Loading production details...</div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+
     </div>
   );
+
 }

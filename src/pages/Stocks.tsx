@@ -11,6 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type StockItem = {
   id: string;
@@ -22,9 +27,25 @@ type StockItem = {
   last_updated: string;
 };
 
+type Form = {
+  product_id: string;
+  action: "increase" | "decrease";
+  amount: string;
+};
+
+const initialForm: Form = {
+  product_id: "",
+  action: "increase",
+  amount: "",
+};
+
+
 export default function Stocks() {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<Form>(initialForm);
+  const [productsList, setProductsList] = useState([]);
+  const [open, setOpen] = useState(false);
   const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -64,18 +85,73 @@ export default function Stocks() {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/products`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProductsList(res.data);
+    } catch (err) {
+      console.error("Failed to fetch products", err);
+    }
+  }
+
   useEffect(() => {
     fetchStocks();
+    fetchProducts();
   }, []);
+
+  
+
+  const handleAddStock = async () => {
+    try {
+      if (!form.product_id || !form.action || !form.amount) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      await axios.post(
+        `${apiUrl}/stocks/addstock`,
+        {
+          product_id: form.product_id,
+          action: form.action,
+          amount: parseFloat(form.amount),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setOpen(false);
+      setForm(initialForm);
+      fetchStocks();
+    } catch (err) {
+      console.error("Failed to update stock manually", err);
+      alert("Failed to update stock");
+    }
+  };
+
 
   return (
     <div className="space-y-6 mt-10 sm:px-4 md:px-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl text-foreground">Stocks</h1>
-        <p className="text-sm text-muted-foreground">
-          View current inventory levels (read-only)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl text-foreground">Stocks</h1>
+          <p className="text-sm text-muted-foreground">
+            View current inventory levels
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            setForm(initialForm);
+            setOpen(true);
+          }}
+        >
+          Adjust Stock
+        </Button>
       </div>
 
       {/* Stock Grid */}
@@ -125,32 +201,68 @@ export default function Stocks() {
           ))}
         </div>
       )}
+      <Dialog
+        open={open}
+        onOpenChange={(val) => {
+          setOpen(val);
+          if (!val) {
+            setForm(initialForm);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manually Adjust Stock</DialogTitle>
+          </DialogHeader>
 
-      {/* Explanation Card */}
-      <Card className="border border-border mt-4">
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Stock Overview</CardTitle>
-          <CardDescription className="text-sm">
-            Automated inventory tracking based on productions and sales
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-success rounded-full"></div>
-              Production entries add to stock
-            </li>
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-destructive rounded-full"></div>
-              Sales reduce stock levels
-            </li>
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-warning rounded-full"></div>
-              Low stock alerts when threshold reached
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+          <div className="space-y-4">
+            {/* Select Product */}
+            <div className="grid gap-2">
+              <Label>Select Product</Label>
+              <Select onValueChange={(val) => setForm({ ...form, product_id: val })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productsList.map((prod) => (
+                    <SelectItem key={prod.id} value={prod.id}>
+                      {prod.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action: Increase or Decrease */}
+            <div className="grid gap-2">
+              <Label>Action</Label>
+              <Select onValueChange={(val) => setForm({ ...form, action: val as "increase" | "decrease" })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="increase">Increase</SelectItem>
+                  <SelectItem value="decrease">Decrease</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Amount */}
+            <div className="grid gap-2">
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                placeholder="Enter quantity"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddStock}>Adjust Stock</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

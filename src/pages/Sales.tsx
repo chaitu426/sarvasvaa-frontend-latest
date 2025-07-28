@@ -150,7 +150,7 @@ export default function Sales() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Sale</DialogTitle>
               <DialogDescription>

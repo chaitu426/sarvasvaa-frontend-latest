@@ -1,4 +1,3 @@
-"use client";
 
 import {
   Card,
@@ -16,6 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {DailyMilkCollectionChart} from "@/components/LineGraph";
 
 export default function ReportsDashboard() {
   const [monthlyData, setMonthlyData] = useState<any>(null);
