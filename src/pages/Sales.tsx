@@ -403,7 +403,7 @@ export default function Sales() {
                       size="icon"
                       variant="ghost"
                       className="hover:bg-destructive/10"
-                      onClick={() => deleteSale(sale.id)}
+                      onClick={() => deleteSale(sale.sale_id)}
                       disabled={deletingId === sale.id}
                     >
                       {deletingId === sale.id ? (
