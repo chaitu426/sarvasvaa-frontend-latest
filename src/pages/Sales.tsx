@@ -94,6 +94,7 @@ export default function Sales() {
       console.error("Error deleting sale:", error);
     }
     setDeletingId(null);
+    fetchSales();
   };
 
   const handleCreateSale = async () => {
