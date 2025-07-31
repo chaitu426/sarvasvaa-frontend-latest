@@ -245,7 +245,7 @@ export default function MilkCollectionsPage() {
                 </div>
 
                 <div>
-                  <Label>Fat (%)</Label>
+                  <Label>FAT (%)</Label>
                   <Input
                     value={form.fat}
                     type="number"
@@ -254,7 +254,7 @@ export default function MilkCollectionsPage() {
                 </div>
 
                 <div>
-                  <Label>SNF</Label>
+                  <Label>SNF (%)</Label>
                   <Input
                     value={form.snf}
                     type="number"

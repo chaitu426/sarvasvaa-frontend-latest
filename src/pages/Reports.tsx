@@ -75,7 +75,7 @@ export default function ReportsDashboard() {
           <p className="text-muted-foreground text-sm">
             Analyze milk collection, production, and sales data.
           </p>
-        </div>
+        </div> 
 
         {/* Date Pickers */}
         <div className="flex flex-wrap gap-2">

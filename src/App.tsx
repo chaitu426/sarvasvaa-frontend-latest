@@ -14,6 +14,7 @@ import Stocks from "./pages/Stocks";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
+import ReportPage from "./pages/PdfReport"
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,14 @@ const App = () => (
               element={
                 <AppLayout>
                   <Reports />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/reportpage"
+              element={
+                <AppLayout>
+                  <ReportPage />
                 </AppLayout>
               }
             />
