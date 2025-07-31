@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const ReportPage = () => {
   const [period, setPeriod] = useState<"day" | "week" | "month">("day");
@@ -15,6 +16,7 @@ const ReportPage = () => {
   const [month, setMonth] = useState("jan");
   const [loading, setLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const { toast } = useToast();
 
   const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -47,8 +49,15 @@ const ReportPage = () => {
       a.download = `report_${period}_${dateValue}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+      toast({
+        title: "report Downloaded",
+        description: "report Downloaded successful",
+      });
     } catch (err) {
-      console.error("Report generation failed:", err);
+      toast({
+        title: "failed Download",
+        description: "Report generation failed",
+      });
     } finally {
       setLoading(false);
     }
