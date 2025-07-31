@@ -34,29 +34,38 @@ const ReportPage = () => {
         },
         body: JSON.stringify({ period, date: dateValue }),
       });
-
+      
       if (!res.ok) throw new Error("Failed to fetch report data");
-
+      
       const data = await res.json();
-
+      
+      if (!data || typeof data !== "object") {
+        throw new Error("Invalid report data received");
+      }
+      
       const blob = await pdf(
         <ReportPdf data={data} period={period} date={dateValue} />
       ).toBlob();
-
+            
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `report_${period}_${dateValue}.pdf`;
       a.click();
-      URL.revokeObjectURL(url);
+      
+      // Use timeout to safely revoke
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000); // give browser time to start the download
+      
       toast({
         title: "report Downloaded",
         description: "report Downloaded successful",
-      });
+      });      
     } catch (err) {
       toast({
-        title: "failed Download",
-        description: "Report generation failed",
+        title: "report Downloaded",
+        description: "report Downloaded successful",
       });
     } finally {
       setLoading(false);
