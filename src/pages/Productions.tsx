@@ -149,7 +149,7 @@ export default function Productions() {
         unit: rm.unit,
         quantity_used: "", // ✅ initialize as empty string
       })) || [];
-      
+
 
       setForm((prev) => ({
         ...prev,
@@ -176,6 +176,14 @@ export default function Productions() {
     updatedProducts[productIndex].raw_materials[rawMaterialIndex].quantity_used = quantityUsed;
     setForm({ ...form, products: updatedProducts });
   };
+
+  const removeProduct = (product_id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      products: prev.products.filter((p) => p.product_id !== product_id),
+    }));
+  };
+  
 
 
 
@@ -222,17 +230,17 @@ export default function Productions() {
         quantity_used: rm.quantity_used,
       })) || [],
     }));
-  
+
     setForm({
       ...item,
       date: new Date(item.date),
       products: transformedProducts,
     });
-  
+
     setEditMode(true);
     setOpen(true);
   };
-  
+
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -440,17 +448,28 @@ export default function Productions() {
                 const product = productsList.find((p) => p.id === prod.product_id);
                 return (
                   <div key={prod.product_id} className="p-2 border rounded-md space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-32 font-medium">{product?.name || "Unknown"}</span>
-                      <Input
-                        type="number"
-                        placeholder="Product Quantity"
-                        value={prod.quantity}
-                        onChange={(e) =>
-                          handleProductQuantityChange(prod.product_id, e.target.value)
-                        }
-                      />
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-32 font-medium">{product?.name || "Unknown"}</span>
+                        <Input
+                          type="number"
+                          placeholder="Product Quantity"
+                          value={prod.quantity}
+                          onChange={(e) =>
+                            handleProductQuantityChange(prod.product_id, e.target.value)
+                          }
+                        />
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="hover:bg-destructive/10"
+                        onClick={() => removeProduct(prod.product_id)}
+                      >
+                        <Trash className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
+
 
                     {/* Render raw materials */}
                     <div className="ml-4 space-y-2">
