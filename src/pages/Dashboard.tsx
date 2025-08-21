@@ -119,8 +119,8 @@ export default function Dashboard() {
 
   const totalMilk = collections.reduce((sum, x) => sum + x.quantity, 0);
   const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalProductions = new Set(productions.map((p) => p.id)).size + 1 ;
-  const stockCount = stocks.reduce((sum, s) => sum + s.qty, 0);
+  const totalProductions = new Set(productions.map((p) => p.id)).size;
+  const stockCount = stocks.reduce((sum, s) => sum + s.qty, 0).toFixed(2);
 
   return (
     <main className="min-h-screen mt-10 sm:p-6 bg-background text-foreground">
