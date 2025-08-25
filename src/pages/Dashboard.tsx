@@ -18,19 +18,6 @@ import {
   ClipboardList,
   TrendingUp,
 } from "lucide-react";
-
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  LabelList,
-  ResponsiveContainer,
-} from "recharts";
 import axios from "axios";
 
 export default function Dashboard() {
@@ -139,28 +126,6 @@ export default function Dashboard() {
         <SummaryCard title="Total Productions" value={totalProductions} icon={<ClipboardList className="w-4 h-4 text-primary" />} />
         <SummaryCard title="Total Sales" value={`₹${totalSales.toFixed(2)}`} icon={<DollarSign className="w-4 h-4 text-primary" />} />
         <SummaryCard title="Stock On Hand" value={`${stockCount} units`} icon={<Package className="w-4 h-4 text-primary" />} />
-      </section>
-
-      <section className="mb-6">
-        <Card className="shadow-md border border-border bg-card rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Stock by Product</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">Live inventory data</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px] sm:h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stocks} margin={{ top: 20, right: 20, left: 0, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3a3a3c" />
-                <XAxis dataKey="product_name" tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={60} style={{ fontSize: "11px", fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis tickLine={false} axisLine={false} style={{ fontSize: "11px", fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip cursor={{ fill: "hsl(var(--accent)/0.1)" }} contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="qty" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={30}>
-                  <LabelList dataKey="qty" position="top" style={{ fill: "hsl(var(--foreground))", fontSize: 10 }} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
