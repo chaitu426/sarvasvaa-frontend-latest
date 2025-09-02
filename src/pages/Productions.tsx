@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const token = localStorage.getItem("dairy_token");
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -286,9 +287,11 @@ export default function Productions() {
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
+            <div className="space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-md" />
+            ))}
+          </div>
           ) : Object.keys(groupedProductions).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               No production entries found.

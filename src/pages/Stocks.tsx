@@ -12,11 +12,24 @@ import { Badge } from "@/components/ui/badge";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+// Types
 type StockItem = {
   id: string;
   product_id: string;
@@ -25,6 +38,12 @@ type StockItem = {
   unit: string;
   status: "normal" | "low";
   last_updated: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  unit: string;
 };
 
 type Form = {
@@ -39,20 +58,21 @@ const initialForm: Form = {
   amount: "",
 };
 
-
 export default function Stocks() {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Form>(initialForm);
-  const [productsList, setProductsList] = useState([]);
+  const [productsList, setProductsList] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  // Fetch stocks + products
   const fetchStocks = async () => {
     try {
       setLoading(true);
-
       const [stocksRes, productsRes] = await Promise.all([
         axios.get(`${apiUrl}/stocks`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -61,6 +81,8 @@ export default function Stocks() {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
+
+      setProductsList(productsRes.data);
 
       const productsMap = productsRes.data.reduce((map: any, product: any) => {
         map[product.id] = product;
@@ -79,37 +101,25 @@ export default function Stocks() {
 
       setStocks(enrichedStocks);
     } catch (err) {
-      console.error("Failed to fetch stocks or products:", err);
+      console.error("Failed to fetch stocks/products:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const res = await axios.get(`${apiUrl}/products`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProductsList(res.data);
-    } catch (err) {
-      console.error("Failed to fetch products", err);
-    }
-  }
-
   useEffect(() => {
     fetchStocks();
-    fetchProducts();
   }, []);
 
-  
-
+  // Handle stock adjustment
   const handleAddStock = async () => {
-    try {
-      if (!form.product_id || !form.action || !form.amount) {
-        alert("Please fill all fields.");
-        return;
-      }
+    if (!form.product_id || !form.action || !form.amount) {
+      alert("Please fill all fields.");
+      return;
+    }
 
+    try {
+      setSubmitting(true);
       await axios.post(
         `${apiUrl}/stocks/addstock`,
         {
@@ -118,9 +128,7 @@ export default function Stocks() {
           amount: parseFloat(form.amount),
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -128,20 +136,23 @@ export default function Stocks() {
       setForm(initialForm);
       fetchStocks();
     } catch (err) {
-      console.error("Failed to update stock manually", err);
+      console.error("Failed to update stock manually:", err);
       alert("Failed to update stock");
+    } finally {
+      setSubmitting(false);
     }
   };
-
 
   return (
     <div className="space-y-6 mt-10 sm:px-4 md:px-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl text-foreground">Stocks</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl text-foreground">
+            Stocks
+          </h1>
           <p className="text-sm text-muted-foreground">
-            View current inventory levels
+            View and manage inventory levels
           </p>
         </div>
         <Button
@@ -156,8 +167,21 @@ export default function Stocks() {
 
       {/* Stock Grid */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card
+              key={i}
+              className="animate-pulse border border-border shadow-sm"
+            >
+              <CardHeader className="pb-3">
+                <div className="h-4 w-24 bg-muted rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-6 w-16 bg-muted rounded mb-2" />
+                <div className="h-3 w-20 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : stocks.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">
@@ -176,13 +200,15 @@ export default function Stocks() {
                     {item.product_name}
                   </CardTitle>
                   <Badge
-                    variant={
-                      item.status === "low" ? "destructive" : "secondary"
-                    }
+                    variant={item.status === "low" ? "destructive" : "secondary"}
                   >
                     {item.status}
                   </Badge>
                 </div>
+                <CardDescription className="text-xs">
+                  Last updated:{" "}
+                  {new Date(item.last_updated).toLocaleDateString()}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-xl sm:text-2xl font-bold text-foreground">
@@ -201,13 +227,13 @@ export default function Stocks() {
           ))}
         </div>
       )}
+
+      {/* Adjust Stock Dialog */}
       <Dialog
         open={open}
         onOpenChange={(val) => {
           setOpen(val);
-          if (!val) {
-            setForm(initialForm);
-          }
+          if (!val) setForm(initialForm);
         }}
       >
         <DialogContent className="sm:max-w-md max-h-[70vh] overflow-y-auto">
@@ -219,7 +245,10 @@ export default function Stocks() {
             {/* Select Product */}
             <div className="grid gap-2">
               <Label>Select Product</Label>
-              <Select onValueChange={(val) => setForm({ ...form, product_id: val })}>
+              <Select
+                value={form.product_id}
+                onValueChange={(val) => setForm({ ...form, product_id: val })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
@@ -233,10 +262,15 @@ export default function Stocks() {
               </Select>
             </div>
 
-            {/* Action: Increase or Decrease */}
+            {/* Action */}
             <div className="grid gap-2">
               <Label>Action</Label>
-              <Select onValueChange={(val) => setForm({ ...form, action: val as "increase" | "decrease" })}>
+              <Select
+                value={form.action}
+                onValueChange={(val) =>
+                  setForm({ ...form, action: val as "increase" | "decrease" })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose action" />
                 </SelectTrigger>
@@ -254,12 +288,20 @@ export default function Stocks() {
                 type="number"
                 placeholder="Enter quantity"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, amount: e.target.value })
+                }
               />
             </div>
           </div>
+
           <DialogFooter>
-            <Button onClick={handleAddStock}>Adjust Stock</Button>
+            <Button onClick={handleAddStock} disabled={submitting}>
+              {submitting && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Adjust Stock
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

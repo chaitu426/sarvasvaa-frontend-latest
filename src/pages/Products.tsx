@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -8,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Trash, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,31 +19,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
 
-const initialForm = {
+// ----------------------
+// Types
+// ----------------------
+type RawMaterial = {
+  name: string;
+  unit: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  unit: string;
+  raw_materials: RawMaterial[];
+};
+
+const initialForm: Product = {
   id: "",
   name: "",
   unit: "ltr",
-  raw_materials: []
+  raw_materials: [],
 };
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(initialForm);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [form, setForm] = useState<Product>(initialForm);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [editing, setEditing] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  // ----------------------
+  // Fetch Products
+  // ----------------------
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await axios.get(`${apiUrl}/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -60,6 +76,9 @@ export default function Products() {
     fetchProducts();
   }, []);
 
+  // ----------------------
+  // Submit Product
+  // ----------------------
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -78,19 +97,23 @@ export default function Products() {
       setEditMode(false);
       setOpen(false);
     } catch (err) {
-      console.error("Error submitting form", err);
+      console.error("Error submitting product", err);
     }
     setIsSubmitting(false);
   };
 
-  const handleEdit = (item) => {
-    setIsSubmitting(true);
+  // ----------------------
+  // Edit Product
+  // ----------------------
+  const handleEdit = (item: Product) => {
     setForm(item);
     setEditMode(true);
     setOpen(true);
-    setIsSubmitting(false);
   };
 
+  // ----------------------
+  // Delete Product
+  // ----------------------
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
@@ -104,20 +127,27 @@ export default function Products() {
     setDeletingId(null);
   };
 
+  // ----------------------
+  // Open Details
+  // ----------------------
   const openDetailsDialog = async (id: string) => {
+    setSelectedProduct(null);
     try {
       const res = await axios.get(`${apiUrl}/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSelectedProducts(res.data);
+      setSelectedProduct(res.data);
       setDetailsDialogOpen(true);
     } catch (err) {
-      console.error("Failed to fetch production details", err);
+      console.error("Failed to fetch product details", err);
     }
   };
 
+  // ----------------------
+  // UI
+  // ----------------------
   return (
-    <div className="space-y-6 mt-10 sm:px-4 md:px-6"> 
+    <div className="space-y-6 mt-10 sm:px-4 md:px-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -133,6 +163,7 @@ export default function Products() {
             setEditMode(false);
           }}
         >
+          <Plus className="h-4 w-4 mr-2" />
           Add Product
         </Button>
       </div>
@@ -141,12 +172,20 @@ export default function Products() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Product Catalog</CardTitle>
-          <CardDescription>View and manage all dairy products</CardDescription>
+          <CardDescription>
+            View and manage all dairy products
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            // Skeleton shimmer
+            <div className="space-y-3 animate-pulse">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-10 bg-muted rounded-md w-full"
+                />
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -156,10 +195,12 @@ export default function Products() {
             products.map((product) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition-all"
-                
+                className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition"
               >
-                <div className="space-y-1" onClick={() => openDetailsDialog(product.id)}>
+                <div
+                  className="space-y-1 cursor-pointer"
+                  onClick={() => openDetailsDialog(product.id)}
+                >
                   <p className="font-semibold text-base text-foreground">
                     {product.name}
                   </p>
@@ -167,15 +208,6 @@ export default function Products() {
                     Unit: <span className="font-medium">{product.unit}</span>
                   </p>
                 </div>
-               
-                    {/* {product.rawMaterials.map((raw)=>(
-                      <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">{raw.name}{raw.unit}</span>
-                    </p>
-                    ))} */}
-                
-
-
                 <div className="flex items-center gap-2">
                   <Button
                     size="icon"
@@ -199,7 +231,6 @@ export default function Products() {
                   </Button>
                 </div>
               </div>
-
             ))
           )}
         </CardContent>
@@ -216,9 +247,11 @@ export default function Products() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md max-h-[70vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[70vh] overflow-y-auto rounded-xl">
           <DialogHeader>
-            <DialogTitle>{editMode ? "Edit Product" : "Add Product"}</DialogTitle>
+            <DialogTitle>
+              {editMode ? "Edit Product" : "Add Product"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -304,47 +337,65 @@ export default function Products() {
 
           <DialogFooter className="mt-4">
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               {editMode ? "Update" : "Add"} Product
             </Button>
           </DialogFooter>
         </DialogContent>
-
       </Dialog>
-       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-              <DialogContent className="sm:max-w-md rounded-xl border border-border shadow-xl bg-background sm:max-w-md max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-primary">Product Details</DialogTitle>
-                </DialogHeader>
-      
-                {selectedProducts ? (
-                  <div className="space-y-4 text-sm text-foreground">
-                    
-                    <div className="flex justify-between">
-                      <span className="font-medium">Product Name:</span>
-                      <span>{selectedProducts.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Unit:</span>
-                      <span>{selectedProducts.unit}</span>
-                    </div>
-      
-                    <div>
-                      <p className="font-medium mb-1">Raw Materials:</p>
-                      <ul className="space-y-1 list-disc list-inside ml-2 text-muted-foreground">
-                        {selectedProducts.rawMaterials.map((p) => (
-                          <li key={p.product_id} className="pl-1">
-                            <span className="text-foreground">{p.name || "Unnamed"}</span> — {p.unit}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-xl border border-border shadow-xl bg-background max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-primary">
+              Product Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {!selectedProduct ? (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-4 bg-muted rounded w-1/3"></div>
+              <div className="h-4 bg-muted rounded w-2/3"></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
+            </div>
+          ) : (
+            <div className="space-y-4 text-sm text-foreground">
+              <div className="flex justify-between">
+                <span className="font-medium">Product Name:</span>
+                <span>{selectedProduct.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Unit:</span>
+                <span>{selectedProduct.unit}</span>
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">Raw Materials:</p>
+                {selectedProduct.raw_materials?.length > 0 ? (
+                  <ul className="space-y-1 list-disc list-inside ml-2 text-muted-foreground">
+                    {selectedProduct.raw_materials.map((rm, i) => (
+                      <li key={i} className="pl-1">
+                        <span className="text-foreground">
+                          {rm.name || "Unnamed"}
+                        </span>{" "}
+                        — {rm.unit}
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <div className="text-muted-foreground text-sm">Loading production details...</div>
+                  <p className="text-muted-foreground text-sm">
+                    No raw materials assigned.
+                  </p>
                 )}
-              </DialogContent>
-            </Dialog>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

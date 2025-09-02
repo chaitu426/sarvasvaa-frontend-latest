@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { format } from "date-fns";
 import {
   Card,
   CardContent,
@@ -17,9 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Pencil, Loader2, Trash } from "lucide-react";
-import { useEffect, useState } from "react";
-import axios from "axios";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { Loader2, Plus, Pencil, Trash } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface Product {
   id: string;
@@ -42,21 +43,22 @@ interface Sale {
   date: string; // ISO string format
   customer: string;
   product_id: string;
+  product_name?: string;
   quantity: string;
   rate: string;
   total: string;
-  payment_status: string;
+  payment_status: "paid" | "unpaid";
 }
 
 export default function Sales() {
-  const [sales, setSales] = useState([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [open, setOpen] = useState(false);
+
   const [formData, setFormData] = useState<Omit<Sale, "id">>({
     date: new Date().toISOString().split("T")[0],
     customer: "",
@@ -70,54 +72,33 @@ export default function Sales() {
   const token = localStorage.getItem("dairy_token");
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      date: new Date().toISOString().split("T")[0],
+      customer: "",
+      product_id: "",
+      quantity: "",
+      rate: "",
+      total: "",
+      payment_status: "unpaid",
+    });
+    setEditing(null);
+  };
+
   const fetchSales = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${apiUrl}/sales`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSales(res.data);
     } catch (error) {
+      toast({ title: "Error", description: "Failed to load sales", variant: "destructive" });
       console.error("Error fetching sales:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const deleteSale = async (id: string) => {
-    try {
-      setDeletingId(id);
-      await axios.delete(`${apiUrl}/sales/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSales((prev) => prev.filter((sale) => sale.id !== id));
-    } catch (error) {
-      console.error("Error deleting sale:", error);
-    }
-    setDeletingId(null);
-    fetchSales();
-  };
-
-  const handleCreateSale = async () => {
-    try {
-      setIsSubmitting(true);
-      await axios.post(`${apiUrl}/sales`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFormData({
-        date: new Date().toISOString().split("T")[0],
-        customer: "",
-        product_id: "",
-        quantity: "",
-        rate: "",
-        total: "",
-        payment_status: "unpaid",
-      });
-      setOpenDialog(false);
-      fetchSales();
-    } catch (err) {
-      console.error("Create failed:", err);
-    }
-    setIsSubmitting(false);
   };
 
   const fetchProducts = async () => {
@@ -131,31 +112,45 @@ export default function Sales() {
     }
   };
 
-  const handleEditSale = async () => {
-    if (!editing) return;
+  const handleDeleteSale = async (id: string) => {
     try {
-      setIsSubmitting(true);
-      await axios.put(`${apiUrl}/sales/${editing.sale_id}`, formData, {
+      setDeletingId(id);
+      await axios.delete(`${apiUrl}/sales/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setEditing(null);
-      setFormData({
-        date: new Date().toISOString().split("T")[0],
-        customer: "",
-        product_id: "",
-        quantity: "",
-        rate: "",
-        total: "",
-        payment_status: "unpaid",
-      });
-      setOpenDialog(false);
-      fetchSales();
-    } catch (err) {
-      console.error("Update failed:", err);
+      setSales((prev) => prev.filter((sale) => sale.id !== id));
+      toast({ title: "Deleted", description: "Sale removed successfully" });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete sale", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
     }
-    setIsSubmitting(false);
   };
 
+  const handleSubmitSale = async () => {
+    try {
+      setIsSubmitting(true);
+      if (editing) {
+        await axios.put(`${apiUrl}/sales/${editing.id}`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast({ title: "Updated", description: "Sale updated successfully" });
+      } else {
+        await axios.post(`${apiUrl}/sales`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast({ title: "Created", description: "Sale added successfully" });
+      }
+      resetForm();
+      setOpenDialog(false);
+      fetchSales();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save sale", variant: "destructive" });
+      console.error("Save failed:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetchSales();
@@ -164,6 +159,7 @@ export default function Sales() {
 
   return (
     <div className="space-y-6 mt-10 sm:px-4 md:px-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Sales</h1>
@@ -175,16 +171,8 @@ export default function Sales() {
           <DialogTrigger asChild>
             <Button
               onClick={() => {
-                setEditing(null);
-                setFormData({
-                  date: new Date().toISOString().split("T")[0],
-                  customer: "",
-                  product_id: "",
-                  quantity: "",
-                  rate: "",
-                  total: "",
-                  payment_status: "unpaid",
-                });
+                resetForm();
+                setOpenDialog(true);
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -192,18 +180,19 @@ export default function Sales() {
             </Button>
           </DialogTrigger>
 
-
-          <DialogContent className="sm:max-w-md sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-            <DialogTitle>{editing ? "Edit Sale" : "Add New Sale"}</DialogTitle>
+              <DialogTitle>{editing ? "Edit Sale" : "Add New Sale"}</DialogTitle>
               <DialogDescription>
                 Enter the details of the sale. All fields are required.
               </DialogDescription>
             </DialogHeader>
 
+            {/* Form */}
             <div className="grid gap-4 py-4">
+              {/* Date */}
               <div className="grid gap-2">
-                <Label htmlFor="date">Date</Label>
+                <Label>Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -218,10 +207,7 @@ export default function Sales() {
                       mode="single"
                       selected={new Date(formData.date)}
                       onSelect={(date) =>
-                        date && setFormData({
-                          ...formData,
-                          date: format(date, "yyyy-MM-dd"),
-                        })
+                        date && setFormData({ ...formData, date: format(date, "yyyy-MM-dd") })
                       }
                       initialFocus
                     />
@@ -229,70 +215,61 @@ export default function Sales() {
                 </Popover>
               </div>
 
+              {/* Customer */}
               <div className="grid gap-2">
-                <Label htmlFor="customer">Customer</Label>
+                <Label>Customer</Label>
                 <Input
-                  id="customer"
                   placeholder="Enter customer name"
                   value={formData.customer}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customer: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                 />
               </div>
 
+              {/* Product */}
               <div className="grid gap-2">
-                <Label htmlFor="product">Product</Label>
+                <Label>Product</Label>
                 <Select
                   value={formData.product_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, product_id: value })
-                  }
+                  onValueChange={(value) => setFormData({ ...formData, product_id: value })}
                 >
-                  <SelectTrigger id="product">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent>
-                    {productsList.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
+                    {productsList.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Quantity & Rate */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="quantity">Quantity</Label>
+                  <Label>Quantity</Label>
                   <Input
-                    id="quantity"
-                    placeholder="0"
                     type="number"
                     value={formData.quantity}
                     onChange={(e) => {
                       const quantity = e.target.value;
                       const total = (
-                        parseFloat(quantity || "0") *
-                        parseFloat(formData.rate || "0")
+                        parseFloat(quantity || "0") * parseFloat(formData.rate || "0")
                       ).toFixed(2);
                       setFormData({ ...formData, quantity, total });
                     }}
                   />
                 </div>
-
                 <div className="grid gap-2">
-                  <Label htmlFor="rate">Rate</Label>
+                  <Label>Rate</Label>
                   <Input
-                    id="rate"
-                    placeholder="0.00"
                     type="number"
                     value={formData.rate}
                     onChange={(e) => {
                       const rate = e.target.value;
                       const total = (
-                        parseFloat(rate || "0") *
-                        parseFloat(formData.quantity || "0")
+                        parseFloat(formData.quantity || "0") * parseFloat(rate || "0")
                       ).toFixed(2);
                       setFormData({ ...formData, rate, total });
                     }}
@@ -300,20 +277,22 @@ export default function Sales() {
                 </div>
               </div>
 
+              {/* Total */}
               <div className="grid gap-2">
                 <Label>Total</Label>
                 <Input readOnly value={formData.total} />
               </div>
 
+              {/* Payment status */}
               <div className="grid gap-2">
-                <Label htmlFor="payment_status">Payment Status</Label>
+                <Label>Payment Status</Label>
                 <Select
                   value={formData.payment_status}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, payment_status: value })
+                    setFormData({ ...formData, payment_status: value as "paid" | "unpaid" })
                   }
                 >
-                  <SelectTrigger id="payment_status">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -324,21 +303,21 @@ export default function Sales() {
               </div>
             </div>
 
+            {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpenDialog(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={editing ? handleEditSale : handleCreateSale}
-                disabled={isSubmitting}
-              >
-                {editing ? "Edit Sale" : "Add New Sale"}
+              <Button onClick={handleSubmitSale} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editing ? "Update Sale" : "Add Sale"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Sales List */}
       <Card>
         <CardHeader>
           <CardTitle>Sales Records</CardTitle>
@@ -346,8 +325,13 @@ export default function Sales() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="grid gap-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-xl bg-muted animate-pulse"
+                />
+              ))}
             </div>
           ) : sales.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -368,43 +352,58 @@ export default function Sales() {
                       Customer: <span className="font-medium">{sale.customer}</span>
                     </p>
                     <p className="text-muted-foreground">
-                      Product: <span className="capitalize font-medium">{sale.product_name}</span>
+                      Product:{" "}
+                      <span className="capitalize font-medium">
+                        {sale.product_name ?? "—"}
+                      </span>
                     </p>
                     <p className="text-muted-foreground">
-                      Qty: <span className="font-medium">{sale.quantity}</span> &bull; Rate: ₹
-                      <span className="font-medium">{sale.rate}</span> &bull; Total: ₹
+                      Qty: <span className="font-medium">{sale.quantity}</span> • Rate: ₹
+                      <span className="font-medium">{sale.rate}</span> • Total: ₹
                       <span className="font-medium">{sale.total}</span>
                     </p>
                     <p className="text-muted-foreground">
-                      Status: <span className="capitalize font-medium">{sale.payment_status}</span>
+                      Status:{" "}
+                      <span
+                        className={`capitalize font-medium ${
+                          sale.payment_status === "paid"
+                            ? "text-green-600"
+                            : "text-yellow-600"
+                        }`}
+                      >
+                        {sale.payment_status}
+                      </span>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 self-end md:self-auto">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setEditing(sale); // Set current sale for editing
-                      setFormData({
-                        date: sale.date,
-                        customer: sale.customer,
-                        product_id: sale.product_id,
-                        quantity: sale.quantity,
-                        rate: sale.rate,
-                        total: sale.total,
-                        payment_status: sale.payment_status,
-                      });
-                      setOpenDialog(true);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+                    {/* Edit */}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditing(sale);
+                        setFormData({
+                          date: sale.date,
+                          customer: sale.customer,
+                          product_id: sale.product_id,
+                          quantity: sale.quantity,
+                          rate: sale.rate,
+                          total: sale.total,
+                          payment_status: sale.payment_status,
+                        });
+                        setOpenDialog(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+
+                    {/* Delete */}
                     <Button
                       size="icon"
                       variant="ghost"
                       className="hover:bg-destructive/10"
-                      onClick={() => deleteSale(sale.sale_id)}
+                      onClick={() => handleDeleteSale(sale.id)}
                       disabled={deletingId === sale.id}
                     >
                       {deletingId === sale.id ? (
@@ -417,7 +416,6 @@ export default function Sales() {
                 </div>
               ))}
             </div>
-
           )}
         </CardContent>
       </Card>
