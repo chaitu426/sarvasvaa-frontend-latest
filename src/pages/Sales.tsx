@@ -39,7 +39,7 @@ interface Product {
 }
 
 interface Sale {
-  id: string;
+  sale_id: string;
   date: string; // ISO string format
   customer: string;
   product_id: string;
@@ -59,7 +59,7 @@ export default function Sales() {
   const [editing, setEditing] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState<Omit<Sale, "id">>({
+  const [formData, setFormData] = useState<Omit<Sale, "sale_id">>({
     date: new Date().toISOString().split("T")[0],
     customer: "",
     product_id: "",
@@ -118,7 +118,7 @@ export default function Sales() {
       await axios.delete(`${apiUrl}/sales/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSales((prev) => prev.filter((sale) => sale.id !== id));
+      setSales((prev) => prev.filter((sale) => sale.sale_id !== id));
       toast({ title: "Deleted", description: "Sale removed successfully" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete sale", variant: "destructive" });
@@ -131,7 +131,7 @@ export default function Sales() {
     try {
       setIsSubmitting(true);
       if (editing) {
-        await axios.put(`${apiUrl}/sales/${editing.id}`, formData, {
+        await axios.put(`${apiUrl}/sales/${editing.sale_id}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         toast({ title: "Updated", description: "Sale updated successfully" });
@@ -341,7 +341,7 @@ export default function Sales() {
             <div className="space-y-4">
               {sales.map((sale) => (
                 <div
-                  key={sale.id}
+                  key={sale.sale_id}
                   className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition-all"
                 >
                   <div className="space-y-1 text-sm">
@@ -403,10 +403,10 @@ export default function Sales() {
                       size="icon"
                       variant="ghost"
                       className="hover:bg-destructive/10"
-                      onClick={() => handleDeleteSale(sale.id)}
-                      disabled={deletingId === sale.id}
+                      onClick={() => handleDeleteSale(sale.sale_id)}
+                      disabled={deletingId === sale.sale_id}
                     >
-                      {deletingId === sale.id ? (
+                      {deletingId === sale.sale_id ? (
                         <Loader2 className="h-4 w-4 animate-spin text-destructive" />
                       ) : (
                         <Trash className="h-4 w-4 text-destructive" />
