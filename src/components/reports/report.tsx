@@ -29,7 +29,7 @@ const getReadablePeriod = (period: string, rawDate: string) => {
   const today = new Date();
   if (period === "day") return format(parseISO(rawDate), "do MMMM yyyy");
 
-  if (period === "week") {
+  if (period === "week") { 
     const ref = parseISO(rawDate);
     const start = startOfWeek(ref, { weekStartsOn: 1 });
     const end = endOfWeek(ref, { weekStartsOn: 1 });
@@ -100,8 +100,11 @@ const productionSections = (productions: any[]) =>
             idx + 1,
             prod.product_name,
             prod.quantity,
-            prod.rawMaterials.map((rm: any) => rm.name).join(", "),
-          ]),
+            prod.rawMaterials
+              .map((rm: any) => `${rm.name.trim()}: ${parseFloat(rm.quantity_used).toFixed(2)} ${rm.unit.trim()}`)
+              .join(", "),
+          ])
+          ,
         ],
       },
       layout: "lightHorizontalLines",
