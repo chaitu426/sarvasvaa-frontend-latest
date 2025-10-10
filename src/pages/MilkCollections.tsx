@@ -293,7 +293,7 @@ export default function MilkCollectionsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Milk Collection Records</CardTitle>
-          <CardDescription>Overview of all entries</CardDescription>
+          <CardDescription>Overview of entries</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
