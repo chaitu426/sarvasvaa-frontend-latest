@@ -22,6 +22,7 @@ import {
   Pencil,
   ChevronRight,
   ChevronDown,
+  Droplets ,
   Loader2,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+
 
 type Collection = {
   id: string;
@@ -177,9 +179,6 @@ export default function MilkCollectionsPage() {
           <h1 className="text-2xl font-semibold text-foreground">
             Milk Collections
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Manage daily milk collection data
-          </p>
         </div>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
@@ -292,8 +291,8 @@ export default function MilkCollectionsPage() {
       {/* Records */}
       <Card>
         <CardHeader>
-          <CardTitle>Milk Collection Records</CardTitle>
-          <CardDescription>Overview of all entries</CardDescription>
+          <CardTitle className="text-lg">Milk Collection Records</CardTitle>
+          <CardDescription>Track collections effortlessly</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -307,43 +306,68 @@ export default function MilkCollectionsPage() {
               No records found.
             </p>
           ) : (
-            <div className="space-y-4">
-              {Object.entries(groupedCollections).map(([date, entries]) => (
-                <div key={date} className="border rounded-lg overflow-hidden">
-                  {/* Date Header */}
-                  <div
-                    className="flex justify-between items-center px-4 py-3 cursor-pointer bg-muted hover:bg-muted/80 transition"
-                    onClick={() => toggleDateExpand(date)}
-                  >
-                    <div className="font-semibold text-sm text-foreground">
-                      {date}
-                    </div>
-                    <div className="text-muted-foreground text-xs">
-                      {expandedDates.includes(date) ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                    </div>
-                  </div>
+<div className="space-y-4">
+  {Object.entries(groupedCollections).map(([date, entries]) => {
+    // Format date to "Monday, 12 May 2025"
+    const formattedDate = format(new Date(date), "EEEE, dd MMM yyyy");
 
-                  {/* Entries */}
-                  {expandedDates.includes(date) && (
-                    <div className="space-y-2 p-4">
-                      {entries.map((item) => (
-                        <RecordItem
-                          key={item.id}
-                          item={item}
-                          onEdit={() => openEditDialog(item)}
-                          onDelete={() => handleDelete(item.id)}
-                          deleting={deletingId === item.id}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+    // Compute totals
+    const totalLitres = entries.reduce((sum, e) => sum + Number(e.quantity_ltr || 0), 0);
+    const totalCost = entries.reduce(
+      (sum, e) => sum + Number(e.quantity_ltr || 0) * Number(e.cost_per_litre || 0),
+      0
+    );
+
+    return (
+      <div
+        key={date}
+        className="rounded-xl border border-border bg-card/50 shadow-sm overflow-hidden backdrop-blur-sm transition hover:shadow-md hover:border-primary/40"
+      >
+        {/* Header */}
+        <div
+          className="flex justify-between items-center px-4 py-3 cursor-pointer border-b border-border/60 bg-gradient-to-r from-muted/50 to-muted/30 hover:from-muted/70 hover:to-muted/50 transition-all"
+          onClick={() => toggleDateExpand(date)}
+        >
+          <div className="flex flex-col gap-0.5">
+            <p className="font-semibold text-sm text-foreground flex items-center gap-2">
+              <span className="text-primary text-base">📅</span>
+              {formattedDate}
+            </p>
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Droplets className="w-3 h-3 text-blue-400" />
+              {new Intl.NumberFormat("en-IN").format(totalLitres)} L • ₹{" "}
+              {new Intl.NumberFormat("en-IN").format(totalCost)}
+            </p>
+          </div>
+
+          <div className="text-muted-foreground text-xs">
+            {expandedDates.includes(date) ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </div>
+        </div>
+
+        {/* Records */}
+        {expandedDates.includes(date) && (
+          <div className="p-4 space-y-3 bg-background/60">
+            {entries.map((item) => (
+              <RecordItem
+                key={item.id}
+                item={item}
+                onEdit={() => openEditDialog(item)}
+                onDelete={() => handleDelete(item.id)}
+                deleting={deletingId === item.id}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+
           )}
         </CardContent>
       </Card>
@@ -405,40 +429,59 @@ function RecordItem({
   deleting: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between border border-border bg-background px-4 py-3 rounded-md shadow-sm hover:shadow transition">
-      <div className="space-y-1">
-        <p className="font-medium text-sm">
-          {item.collection_time.toUpperCase()} – {item.quantity_ltr} L – ₹
-          {item.cost_per_litre}/L –{" "}
-          <span className="uppercase">{item.milk_type}</span>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Fat: {item.fat}%, SNF: {item.snf}%
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hover:bg-primary/10"
-          onClick={onEdit}
-        >
-          <Pencil className="h-4 w-4 text-muted-foreground" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="hover:bg-destructive/10"
-          onClick={onDelete}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-          ) : (
-            <Trash className="h-4 w-4 text-destructive" />
-          )}
-        </Button>
-      </div>
-    </div>
+<div
+  className="flex items-center justify-between rounded-xl border border-border bg-gradient-to-br from-background/70 to-muted/20 backdrop-blur-md shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-300 px-5 py-4 shadow-sm hover:shadow-md transition-all duration-200"
+>
+  <div className="space-y-1 cursor-pointer">
+  <div className="flex items-center gap-2 text-sm">
+    <span
+      className={`px-2 py-0.5 rounded-full font-medium text-md ${
+        item.collection_time.includes("morning")
+          ? "bg-yellow-500/15 text-yellow-500"
+          : "bg-blue-500/15 text-blue-400"
+      }`}
+    >
+      {item.collection_time}
+    </span>
+    <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 text-xs font-medium">
+      {item.milk_type}
+    </span>
+  </div>
+  <p className="font-semibold text-base text-foreground mt-1">
+    {new Intl.NumberFormat("en-IN").format(Number(item.quantity_ltr))} L • ₹
+    {new Intl.NumberFormat("en-IN").format(Number(item.cost_per_litre))}/L
+  </p>
+    <p className="text-sm text-muted-foreground">
+      Fat: <span className="font-medium">{item.fat}%</span> • SNF:{" "}
+      <span className="font-medium">{item.snf}%</span>
+    </p>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <Button
+      size="icon"
+      variant="ghost"
+      className="hover:bg-primary/10 rounded-full transition"
+      onClick={onEdit}
+    >
+      <Pencil className="h-4 w-4 text-blue-400" />
+    </Button>
+
+    <Button
+      size="icon"
+      variant="ghost"
+      className="hover:bg-destructive/10 rounded-full transition"
+      onClick={onDelete}
+      disabled={deleting}
+    >
+      {deleting ? (
+        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+      ) : (
+        <Trash className="h-4 w-4 text-destructive" />
+      )}
+    </Button>
+  </div>
+</div>
+
   );
 }

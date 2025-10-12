@@ -20,7 +20,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash, CalendarIcon, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash, CalendarIcon, Loader2, Factory } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,7 +61,7 @@ export default function Productions() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [groupedProductions, setGroupedProductions] = useState({});
+  const [groupedProductions, setGroupedProductions] = useState<Record<string, any[]>>({});
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
   const [selectedProduction, setSelectedProduction] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -262,9 +262,6 @@ export default function Productions() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-foreground">Productions</h1>
-          <p className="text-sm text-muted-foreground">
-            Track dairy production processes
-          </p>
         </div>
         <Button
           onClick={() => {
@@ -285,82 +282,104 @@ export default function Productions() {
             Monitor milk-to-product transformation processes
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {loading ? (
-            <div className="space-y-4">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full rounded-md" />
-            ))}
-          </div>
-          ) : Object.keys(groupedProductions).length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No production entries found.
+        <CardContent className="space-y-4">
+  {loading ? (
+    <div className="space-y-4">
+      {[...Array(6)].map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full rounded-md" />
+      ))}
+    </div>
+  ) : Object.keys(groupedProductions).length === 0 ? (
+    <div className="text-center py-12 text-muted-foreground">
+      No production entries found.
+    </div>
+  ) : (
+    Object.entries(groupedProductions).map(([date, entries]) => {
+      const formattedDate = format(new Date(date), "EEEE, dd MMM yyyy");
+
+      // Optional summary (e.g., total batches per day)
+      const totalBatches = entries.length;
+
+      return (
+        <div
+          key={date}
+          className="rounded-xl border border-border bg-card/50 shadow-sm overflow-hidden backdrop-blur-sm transition hover:shadow-md hover:border-primary/40"
+        >
+          {/* Header */}
+          <button
+            onClick={() =>
+              setExpandedDates((prev) =>
+                prev.includes(date)
+                  ? prev.filter((d) => d !== date)
+                  : [...prev, date]
+              )
+            }
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-3 border-b border-border/60 rounded-md bg-gradient-to-r from-muted/50 to-muted/30 hover:from-muted/70 hover:to-muted/50 transition-all"
+            )}
+          >
+            <div className="flex flex-col gap-0.5 text-left">
+              <p className="font-semibold text-md text-foreground flex items-center gap-2">
+                <Factory className="w-4 h-4 text-primary" />
+                {formattedDate}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {totalBatches} Batch{totalBatches > 1 && "es"} recorded
+              </p>
             </div>
-          ) : (
-            Object.entries(groupedProductions as any[]).map(([date, entries]) => (
-              <div key={date} className="border rounded-lg">
+            <div className="text-muted-foreground text-xs">
+              {expandedDates.includes(date) ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </div>
+          </button>
 
-
-                <button
-                  onClick={() =>
-                    setExpandedDates((prev) =>
-                      prev.includes(date)
-                        ? prev.filter((d) => d !== date)
-                        : [...prev, date]
-                    )
-                  }
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-2 rounded-md bg-muted hover:bg-muted/70 font-medium transition-colors",
-                    expandedDates.includes(date) && "bg-muted/80"
-                  )}
+          {/* Records */}
+          {expandedDates.includes(date) && (
+            <div className="p-4 space-y-3 bg-background/60">
+              {(entries as any[]).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition"
                 >
-                  <span>{format(new Date(date), "PPP")}</span>
-                  {expandedDates.includes(date) ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-
-
-                {expandedDates.includes(date) && (
-                  <div className="space-y-2 p-4">
-                    {entries.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between border border-border bg-background px-4 py-3 rounded-md shadow-sm hover:shadow transition"
-                      >
-                        <div className="space-y-1 cursor-pointer" onClick={() => openDetailsDialog(item.id)}>
-                          <p className="font-medium text-sm">
-                            BATCH NO: {item.batch_no}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {/* <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </Button> */}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="hover:bg-destructive/10"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={deletingId === item.id}
-                          >
-                            {deletingId === item.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                            ) : (
-                              <Trash className="h-4 w-4 text-destructive" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                  <div
+                    className="space-y-1 cursor-pointer"
+                    onClick={() => openDetailsDialog(item.id)}
+                  >
+                    <p className="font-medium text-sm text-foreground flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">BATCH NO:</span>
+                      <span className="font-semibold text-primary">
+                        {item.batch_no}
+                      </span>
+                    </p>
                   </div>
-                )}
-              </div>
-            ))
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="hover:bg-destructive/10"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deletingId === item.id}
+                    >
+                      {deletingId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+                      ) : (
+                        <Trash className="h-4 w-4 text-destructive" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </CardContent>
+        </div>
+      );
+    })
+  )}
+</CardContent>
 
       </Card>
 

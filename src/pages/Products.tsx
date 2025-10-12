@@ -152,9 +152,6 @@ export default function Products() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-foreground">Products</h1>
-          <p className="text-muted-foreground text-sm">
-            Manage your dairy product catalog
-          </p>
         </div>
         <Button
           onClick={() => {
@@ -173,67 +170,77 @@ export default function Products() {
         <CardHeader>
           <CardTitle className="text-lg">Product Catalog</CardTitle>
           <CardDescription>
-            View and manage all dairy products
+           Manage your dairy lineup effortlessly.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {loading ? (
-            // Skeleton shimmer
-            <div className="space-y-3 animate-pulse">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 bg-muted rounded-md w-full"
-                />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No products available.
-            </div>
-          ) : (
-            products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition"
-              >
-                <div
-                  className="space-y-1 cursor-pointer"
-                  onClick={() => openDetailsDialog(product.id)}
-                >
-                  <p className="font-semibold text-base text-foreground">
-                    {product.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Unit: <span className="font-medium">{product.unit}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleEdit(product)}
-                  >
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="hover:bg-destructive/10"
-                    onClick={() => handleDelete(product.id)}
-                    disabled={deletingId === product.id}
-                  >
-                    {deletingId === product.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                    ) : (
-                      <Trash className="h-4 w-4 text-destructive" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
+        <CardContent className="space-y-4">
+  {loading ? (
+    // Skeleton shimmer
+    <div className="space-y-3 animate-pulse">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-12 rounded-2xl bg-muted/30 border border-border/40"
+        />
+      ))}
+    </div>
+  ) : products.length === 0 ? (
+    <div className="text-center py-12 text-muted-foreground text-sm">
+      No products available.
+    </div>
+  ) : (
+    products.map((product) => (
+      <div
+        key={product.id}
+        className="group relative flex items-center justify-between rounded-2xl border border-border/50 bg-gradient-to-br from-background/70 to-muted/20 backdrop-blur-md px-5 py-4 shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-300"
+      >
+        {/* Product Info */}
+        <div
+          className="space-y-1 cursor-pointer select-none"
+          onClick={() => openDetailsDialog(product.id)}
+        >
+          <p className="font-semibold text-base text-foreground group-hover:text-blue-400 transition-colors">
+            {product.name}
+          </p>
+          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+            <p>
+              Unit:{" "}
+              <span className="font-medium text-foreground">
+                {product.unit}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="hover:bg-blue-500/10 rounded-full"
+            onClick={() => handleEdit(product)}
+          >
+            <Pencil className="h-4 w-4 text-blue-400" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="hover:bg-red-500/10 rounded-full"
+            onClick={() => handleDelete(product.id)}
+            disabled={deletingId === product.id}
+          >
+            {deletingId === product.id ? (
+              <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+            ) : (
+              <Trash className="h-4 w-4 text-red-500" />
+            )}
+          </Button>
+        </div>
+      </div>
+    ))
+  )}
+</CardContent>
+
       </Card>
 
       {/* Dialog for Add/Edit */}

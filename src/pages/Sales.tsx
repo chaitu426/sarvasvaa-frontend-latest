@@ -163,9 +163,6 @@ export default function Sales() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Sales</h1>
-          <p className="text-muted-foreground text-sm">
-            Manage sales transactions and invoices
-          </p>
         </div>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
@@ -320,104 +317,136 @@ export default function Sales() {
       {/* Sales List */}
       <Card>
         <CardHeader>
-          <CardTitle>Sales Records</CardTitle>
+          <CardTitle className="text-lg">Sales Records</CardTitle>
           <CardDescription>Track and manage all sales entries</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="grid gap-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 rounded-xl bg-muted animate-pulse"
-                />
-              ))}
-            </div>
-          ) : sales.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No sales records found.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sales.map((sale) => (
-                <div
-                  key={sale.sale_id}
-                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition-all"
+  {loading ? (
+    <div className="grid gap-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="h-20 rounded-2xl bg-muted/30 animate-pulse border border-border/40"
+        />
+      ))}
+    </div>
+  ) : sales.length === 0 ? (
+    <div className="text-center py-12 text-muted-foreground text-sm">
+      No sales records found.
+    </div>
+  ) : (
+    <div className="space-y-4">
+      {sales.map((sale) => (
+        <div
+          key={sale.sale_id}
+          className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-background/70 to-muted/20 backdrop-blur-md shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-300"
+        >
+          <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Left Section */}
+            <div className="space-y-1.5 text-sm">
+              <p className="text-base font-semibold text-foreground">
+                {new Date(sale.date).toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+
+              <p className="text-muted-foreground">
+                Customer:{" "}
+                <span className="font-medium text-foreground">
+                  {sale.customer}
+                </span>
+              </p>
+
+              <p className="text-muted-foreground">
+                Product:{" "}
+                <span className="capitalize font-medium text-foreground">
+                  {sale.product_name ?? "—"}
+                </span>
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
+                <span>
+                  Qty:{" "}
+                  <span className="font-medium text-foreground">
+                    {sale.quantity}
+                  </span>
+                </span>
+                <span>•</span>
+                <span>
+                  Rate: ₹
+                  <span className="font-medium text-foreground">
+                    {Number(sale.rate).toLocaleString("en-IN")}
+                  </span>
+                </span>
+                <span>•</span>
+                <span>
+                  Total: ₹
+                  <span className="font-semibold text-blue-400">
+                    {Number(sale.total).toLocaleString("en-IN")}
+                  </span>
+                </span>
+              </div>
+
+              <div className="pt-1">
+                <span className="text-muted-foreground">Status: </span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                    sale.payment_status === "paid"
+                      ? "bg-green-500/15 text-green-400"
+                      : "bg-yellow-500/15 text-yellow-400"
+                  }`}
                 >
-                  <div className="space-y-1 text-sm">
-                    <p className="text-base font-semibold text-foreground">
-                      {new Date(sale.date).toLocaleDateString()}
-                    </p>
-                    <p className="text-muted-foreground">
-                      Customer: <span className="font-medium">{sale.customer}</span>
-                    </p>
-                    <p className="text-muted-foreground">
-                      Product:{" "}
-                      <span className="capitalize font-medium">
-                        {sale.product_name ?? "—"}
-                      </span>
-                    </p>
-                    <p className="text-muted-foreground">
-                      Qty: <span className="font-medium">{sale.quantity}</span> • Rate: ₹
-                      <span className="font-medium">{sale.rate}</span> • Total: ₹
-                      <span className="font-medium">{sale.total}</span>
-                    </p>
-                    <p className="text-muted-foreground">
-                      Status:{" "}
-                      <span
-                        className={`capitalize font-medium ${
-                          sale.payment_status === "paid"
-                            ? "text-green-600"
-                            : "text-yellow-600"
-                        }`}
-                      >
-                        {sale.payment_status}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end md:self-auto">
-                    {/* Edit */}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditing(sale);
-                        setFormData({
-                          date: sale.date,
-                          customer: sale.customer,
-                          product_id: sale.product_id,
-                          quantity: sale.quantity,
-                          rate: sale.rate,
-                          total: sale.total,
-                          payment_status: sale.payment_status,
-                        });
-                        setOpenDialog(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-
-                    {/* Delete */}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="hover:bg-destructive/10"
-                      onClick={() => handleDeleteSale(sale.sale_id)}
-                      disabled={deletingId === sale.sale_id}
-                    >
-                      {deletingId === sale.sale_id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                      ) : (
-                        <Trash className="h-4 w-4 text-destructive" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  {sale.payment_status}
+                </span>
+              </div>
             </div>
-          )}
-        </CardContent>
+
+            {/* Right Section */}
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-blue-500/10 rounded-full"
+                onClick={() => {
+                  setEditing(sale);
+                  setFormData({
+                    date: sale.date,
+                    customer: sale.customer,
+                    product_id: sale.product_id,
+                    quantity: sale.quantity,
+                    rate: sale.rate,
+                    total: sale.total,
+                    payment_status: sale.payment_status,
+                  });
+                  setOpenDialog(true);
+                }}
+              >
+                <Pencil className="h-4 w-4 text-blue-400" />
+              </Button>
+
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-red-500/10 rounded-full"
+                onClick={() => handleDeleteSale(sale.sale_id)}
+                disabled={deletingId === sale.sale_id}
+              >
+                {deletingId === sale.sale_id ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                ) : (
+                  <Trash className="h-4 w-4 text-red-500" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</CardContent>
+
       </Card>
     </div>
   );
