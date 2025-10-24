@@ -35,7 +35,8 @@ const navigationItems = [
   { title: "Stocks", url: "/stocks", icon: Archive },
   { title: "Sales", url: "/sales", icon: ShoppingCart },
   { title: "Reports", url: "/reports", icon: FileText },
-  {title: "DownloadReports", url: "/reportpage", icon: FileText }
+  {title: "DownloadReports", url: "/reportpage", icon: FileText },
+  {title: "SQLAgent", url: "/ai", icon: FileText }
 ];
 
 export function AppSidebar() {

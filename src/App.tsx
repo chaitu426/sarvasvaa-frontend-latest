@@ -15,6 +15,7 @@ import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import ReportPage from "./pages/PdfReport"
+import SQLAgentChat from "./pages/Aiagent"
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,14 @@ const App = () => (
               element={
                 <AppLayout>
                   <ReportPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/ai"
+              element={
+                <AppLayout>
+                  <SQLAgentChat/>
                 </AppLayout>
               }
             />
