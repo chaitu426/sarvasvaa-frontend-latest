@@ -50,6 +50,8 @@ export default function SQLAgentChat() {
     }
   }, [loading]);
 
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -65,7 +67,7 @@ export default function SQLAgentChat() {
         .map(msg => `${msg.sender === 'user' ? 'User' : 'Bot'}: ${msg.text}`)
         .join('\n');
 
-      const { data } = await axios.post('http://localhost:4000/sqlagent', {
+      const { data } = await axios.post(`${apiUrl}/sqlagent`, {
         messages: historyForAPI,
       });
 
