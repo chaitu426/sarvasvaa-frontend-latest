@@ -47,7 +47,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         ) : (
           /* Normal pages: allow page-level scrolling and keep padding */
           <main className="flex-1 flex flex-col">
-            <div className="p-6 w-full">{children}</div>
+            <div className="p-4 w-full">{children}</div>
           </main>
         )}
       </div>

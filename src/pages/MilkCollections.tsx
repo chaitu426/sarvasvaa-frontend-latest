@@ -450,7 +450,7 @@ function CalendarGrid({
   const days = [...Array(daysInMonth)].map((_, i) => i + 1);
 
   return (
-    <Card className="p-3 sm:p-4 shadow-md bg-zinc-100">
+    <Card className="p-1 sm:p-4 shadow-md bg-zinc-100">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-3">
         <Button size="icon" variant="ghost" onClick={() =>
@@ -541,7 +541,7 @@ function CalendarGrid({
               {/* Summary */}
               {entries.length > 0 ? (
                 <div className="flex flex-col gap-[2px] mt-1 overflow-hidden">
-                  <span className="text-[9px] sm:text-xs font-medium text-primary truncate">
+                  <span className="text-[9px] sm:text-xs font-medium text-primary leading-none truncate">
                     {Number(totalLitres.toFixed(2))} L • ₹{Number(totalAmount.toFixed(2))}
                   </span>
 

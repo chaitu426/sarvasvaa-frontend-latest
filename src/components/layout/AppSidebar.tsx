@@ -56,7 +56,7 @@ export function AppSidebar() {
   return (
     <>
       {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
+      <div className="lg:hidden fixed top-4 left-2 z-50">
         <Button
           variant="ghost"
           size="icon"
