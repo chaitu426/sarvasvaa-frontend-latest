@@ -295,11 +295,14 @@ export default function MilkCollectionsPage() {
           <CardTitle className="text-lg">Milk Collection Records</CardTitle>
           <CardDescription>Track collections effortlessly</CardDescription>
         </CardHeader>
+        {isLoading ? 
+          <CalendarGridSkeleton/>:
         <CalendarGrid
         groupedCollections={groupedCollections}
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
       />
+          }
       {selectedDate && groupedCollections[selectedDate] && (
         <div className="space-y-4 p-4 mt-4">
           <h2 className="text-xl font-semibold">
@@ -571,6 +574,53 @@ function CalendarGrid({
   );
 }
 
+function CalendarGridSkeleton() {
+  return (
+    <Card className="p-1 sm:p-4 shadow-md bg-zinc-100 animate-pulse">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-md bg-muted" />
+        <div className="h-5 w-24 sm:w-32 bg-muted rounded" />
+        <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-md bg-muted" />
+      </div>
+
+      {/* WEEKDAY NAMES */}
+      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="h-3 w-full bg-muted rounded" />
+        ))}
+      </div>
+
+      {/* GRID */}
+      <div className="grid grid-cols-7 gap-[4px] sm:gap-2">
+        {/* 42 skeleton date cells (6 rows × 7 columns) */}
+        {Array.from({ length: 42 }).map((_, i) => (
+          <div
+            key={i}
+            className="
+              rounded-lg border p-1.5 sm:p-2
+              h-[60px] sm:h-24
+              bg-card flex flex-col justify-between
+            "
+          >
+            <div className="flex justify-between">
+              <div className="h-3 w-3 bg-muted rounded" />
+              <div className="h-3 w-5 bg-muted rounded" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <div className="h-2 w-10 bg-muted rounded" />
+              <div className="flex gap-1">
+                <div className="h-2 w-3 bg-muted rounded" />
+                <div className="h-2 w-3 bg-muted rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 
 
