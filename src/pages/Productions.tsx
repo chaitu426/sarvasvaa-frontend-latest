@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const token = localStorage.getItem("dairy_token");
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -65,6 +66,8 @@ export default function Productions() {
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
   const [selectedProduction, setSelectedProduction] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
 
 
 
@@ -78,28 +81,19 @@ export default function Productions() {
 
       // Group by date
       const grouped = res.data.reduce((acc, prod) => {
-        const date = prod.date;
-        if (!acc[date]) acc[date] = [];
-        acc[date].push(prod);
+        const dateKey = format(new Date(prod.date), "yyyy-MM-dd");
+
+        if (!acc[dateKey]) acc[dateKey] = [];
+        acc[dateKey].push(prod);
+
         return acc;
       }, {});
+
       setGroupedProductions(grouped);
     } catch (err) {
       console.error("Failed to fetch productions", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const openDetailsDialog = async (id: string) => {
-    try {
-      const res = await axios.get(`${apiUrl}/productions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSelectedProduction(res.data);
-      setDetailsDialogOpen(true);
-    } catch (err) {
-      console.error("Failed to fetch production details", err);
     }
   };
 
@@ -184,7 +178,7 @@ export default function Productions() {
       products: prev.products.filter((p) => p.product_id !== product_id),
     }));
   };
-  
+
 
 
 
@@ -282,104 +276,41 @@ export default function Productions() {
             Monitor milk-to-product transformation processes
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-  {loading ? (
-    <div className="space-y-4">
-      {[...Array(6)].map((_, i) => (
-        <Skeleton key={i} className="h-10 w-full rounded-md" />
-      ))}
-    </div>
-  ) : Object.keys(groupedProductions).length === 0 ? (
-    <div className="text-center py-12 text-muted-foreground">
-      No production entries found.
-    </div>
-  ) : (
-    Object.entries(groupedProductions).map(([date, entries]) => {
-      const formattedDate = format(new Date(date), "EEEE, dd MMM yyyy");
-
-      // Optional summary (e.g., total batches per day)
-      const totalBatches = entries.length;
-
-      return (
-        <div
-          key={date}
-          className="rounded-xl border border-border bg-card/50 shadow-sm overflow-hidden backdrop-blur-sm transition hover:shadow-md hover:border-primary/40"
-        >
-          {/* Header */}
-          <button
-            onClick={() =>
-              setExpandedDates((prev) =>
-                prev.includes(date)
-                  ? prev.filter((d) => d !== date)
-                  : [...prev, date]
-              )
-            }
-            className={cn(
-              "w-full flex items-center justify-between px-4 py-3 border-b border-border/60 rounded-md bg-gradient-to-r from-muted/50 to-muted/30 hover:from-muted/70 hover:to-muted/50 transition-all"
-            )}
-          >
-            <div className="flex flex-col gap-0.5 text-left">
-              <p className="font-semibold text-md text-foreground flex items-center gap-2">
-                <Factory className="w-4 h-4 text-primary" />
-                {formattedDate}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {totalBatches} Batch{totalBatches > 1 && "es"} recorded
-              </p>
-            </div>
-            <div className="text-muted-foreground text-xs">
-              {expandedDates.includes(date) ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
-            </div>
-          </button>
-
-          {/* Records */}
-          {expandedDates.includes(date) && (
-            <div className="p-4 space-y-3 bg-background/60">
-              {(entries as any[]).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-background px-5 py-4 shadow-sm hover:shadow-md transition"
-                >
-                  <div
-                    className="space-y-1 cursor-pointer"
-                    onClick={() => openDetailsDialog(item.id)}
-                  >
-                    <p className="font-medium text-sm text-foreground flex items-center gap-2">
-                      <span className="text-muted-foreground text-xs">BATCH NO:</span>
-                      <span className="font-semibold text-primary">
-                        {item.batch_no}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="hover:bg-destructive/10"
-                      onClick={() => handleDelete(item.id)}
-                      disabled={deletingId === item.id}
-                    >
-                      {deletingId === item.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                      ) : (
-                        <Trash className="h-4 w-4 text-destructive" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <CardContent className=" space-y-6 p-0">
+          {/* Calendar View */}
+          {loading ? (
+            <CalendarGridSkeleton />
+          ) : (
+            <CalendarGrid
+              groupedCollections={groupedProductions}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+            />
           )}
-        </div>
-      );
-    })
-  )}
-</CardContent>
+
+          {/* Day Records Below Calendar */}
+          {!loading &&
+            selectedDate &&
+            groupedProductions[selectedDate] &&
+            (
+              <div className="space-y-4 p-4 mt-4 rounded-xl bg-card shadow-sm">
+                <h2 className="text-xl font-semibold">
+                  Records for {format(new Date(selectedDate), "dd MMM yyyy")}
+                </h2>
+
+                {groupedProductions[selectedDate].map((item) => (
+                  <RecordItem
+                    key={item.id}
+                    item={item}
+                    onDelete={() => handleDelete(item.id)}
+                    deleting={deletingId === item.id}
+                  />
+                ))}
+              </div>
+            )
+          }
+        </CardContent>
+
 
       </Card>
 
@@ -532,65 +463,311 @@ export default function Productions() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-xl sm:max-w-md max-h-[80vh] overflow-y-auto border border-border shadow-xl bg-background">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-primary">Production Details</DialogTitle>
-          </DialogHeader>
-
-          {selectedProduction ? (
-            <div className="space-y-4 text-sm text-foreground">
-              <div className="flex justify-between">
-                <span className="font-medium">Date:</span>
-                <span>{format(new Date(selectedProduction.date), "PPP")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Batch No:</span>
-                <span>{selectedProduction.batch_no}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Milk Used:</span>
-                <span>{selectedProduction.milk_used_ltr} L</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Skim Milk:</span>
-                <span>{selectedProduction.sepration_milk_ltr} L</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Whole Milk:</span>
-                <span>{selectedProduction.whole_milk_ltr} L</span>
-              </div>
-
-              <div className="space-y-4">
-                <p className="font-medium">Products:</p>
-                {selectedProduction.products.map((product) => (
-                  <div key={product.product_id} className="ml-2 space-y-2">
-                    <div className="text-muted-foreground">
-                      <span className="text-foreground font-medium">{product.product_name || "Unnamed"}</span> — {product.quantity} {product.unit}
-                    </div>
-                    {product.rawMaterials && product.rawMaterials.length > 0 && (
-                      <div className="ml-4">
-                        <p className="text-sm font-medium mb-1 text-foreground">Raw Materials:</p>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          {product.rawMaterials.map((rm) => (
-                            <li key={rm.raw_material_id}>{rm.name || "Unnamed"}  -  {rm.quantity_used} {rm.unit}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-sm">Loading production details...</div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-
-
     </div>
   );
 
+}
+
+function RecordItem({
+  item,
+  onDelete,
+  deleting,
+}: {
+  item: any;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
+  const [selectedProduction, setSelectedProduction] = useState<any>(null);
+
+  const openDetailsDialog = async (id: string) => {
+    try {
+      const res = await axios.get(`${apiUrl}/productions/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSelectedProduction(res.data);
+    } catch (err) {
+      console.error("Failed to fetch production details", err);
+    }
+  };
+
+  return (
+    <Collapsible className="rounded-xl border border-border bg-card shadow-sm transition-all duration-200">
+
+      {/* HEADER */}
+      <div className="flex items-center justify-between p-4">
+        <CollapsibleTrigger
+          onClick={() => openDetailsDialog(item.id)}
+          className="flex flex-col text-left w-full cursor-pointer"
+        >
+          <p className="text-base font-semibold text-foreground">
+            Batch No: {item.batch_no}
+          </p>
+
+          <p className="text-sm text-muted-foreground">
+            Milk Used: <span className="font-medium">{new Intl.NumberFormat("en-IN").format(Number(item.milk_used_ltr))} L</span>
+          </p>
+        </CollapsibleTrigger>
+
+        <Button
+          size="icon"
+          variant="ghost"
+          className="hover:bg-destructive/10 rounded-full transition"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+          ) : (
+            <Trash className="h-4 w-4 text-destructive" />
+          )}
+        </Button>
+      </div>
+
+      {/* DROPDOWN CONTENT */}
+      <CollapsibleContent className="px-4 pb-4 space-y-3 text-sm text-muted-foreground">
+
+        {!selectedProduction && (
+          <p className="text-center text-muted-foreground text-xs">Loading...</p>
+        )}
+
+        {selectedProduction && (
+          <>
+            {/* Milk details */}
+            <div className="flex justify-between">
+              <span>Skim Milk:</span>
+              <span className="font-medium">
+              {new Intl.NumberFormat("en-IN").format(Number(selectedProduction.sepration_milk_ltr))} L
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Whole Milk:</span>
+              <span className="font-medium">
+              {new Intl.NumberFormat("en-IN").format(Number(selectedProduction.whole_milk_ltr))} L
+              </span>
+            </div>
+
+            {/* Products */}
+            <div className="pt-2">
+  <h3 className="font-medium text-foreground mb-2">Products</h3>
+
+  <table className="w-full border border-border rounded-lg">
+    <thead>
+      <tr className="bg-muted">
+        <th className="text-left p-2 border-b border-border">Product</th>
+        <th className="text-left p-2 border-b border-border">Quantity</th>
+        <th className="text-left p-2 border-b border-border">Raw Materials</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {selectedProduction.products?.map((p: any) => (
+        <tr key={p.product_id} className="border-b border-border">
+          {/* Product Name */}
+          <td className="p-2">{p.product_name}</td>
+
+          {/* Quantity */}
+          <td className="p-2">
+          {new Intl.NumberFormat("en-IN").format(Number(p.quantity))} {p.unit}
+          </td>
+
+          {/* Raw Materials */}
+          <td className="p-2">
+            {p.rawMaterials?.length > 0 ? (
+              <ul className="list-disc ml-4 space-y-1">
+                {p.rawMaterials.map((rm: any) => (
+                  <li key={rm.raw_material_id}>{rm.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-muted-foreground">No materials</span>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+          </>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+
+
+function CalendarGrid({
+  groupedCollections,
+  selectedDate,
+  setSelectedDate,
+}: {
+  groupedCollections: Record<string, any>;
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+  const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+
+  const daysInMonth = monthEnd.getDate();
+  const days = [...Array(daysInMonth)].map((_, i) => i + 1);
+
+  return (
+    <Card className="p-1 shadow-md bg-zinc-100">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-3">
+        <Button size="icon" variant="ghost" onClick={() =>
+          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+        }>
+          &lt;
+        </Button>
+
+        <h2 className="text-base sm:text-lg font-semibold tracking-wide">
+          {format(currentMonth, "MMMM yyyy")}
+        </h2>
+
+        <Button size="icon" variant="ghost" onClick={() =>
+          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+        }>
+          &gt;
+        </Button>
+      </div>
+
+      {/* WEEKDAYS */}
+      <div className="grid grid-cols-7 text-center text-[10px] sm:text-xs font-semibold text-muted-foreground mb-2">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+          <div key={d}>{d}</div>
+        ))}
+      </div>
+
+      {/* GRID */}
+      <div className="grid grid-cols-7 gap-[4px] sm:gap-2">
+        {/* OFFSET */}
+        {[...Array(monthStart.getDay())].map((_, i) => (
+          <div key={i}></div>
+        ))}
+
+        {days.map((day) => {
+          const dateKey = format(
+            new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day),
+            "yyyy-MM-dd"
+          );
+
+          const entries = groupedCollections[dateKey] || [];
+
+          const totalLitres = entries.reduce(
+            (sum, p) => sum + Number(p.milk_used_ltr || 0),
+            0
+          );
+          const isSelected = selectedDate === dateKey;
+          const isToday = todayKey === dateKey;
+
+          return (
+            <div
+              key={day}
+              onClick={() => setSelectedDate(dateKey)}
+              className={`
+                rounded-lg border p-1.5 sm:p-2
+                h-[60px] sm:h-24
+                flex flex-col justify-between
+                cursor-pointer transition
+                active:scale-[0.97]
+                overflow-hidden
+                ${isSelected ? "border-primary bg-primary/10 shadow" : "bg-card"}
+                ${isToday ? "ring-1 ring-primary/40" : ""}
+                ${entries.length > 0 ? "hover:border-primary/40" : "text-muted-foreground"}
+              `}
+            >
+              {/* Top Row */}
+              <div className="flex justify-between items-start">
+                <span className="text-[11px] sm:text-sm font-semibold leading-none">
+                  {day}
+                </span>
+
+                {isToday && (
+                  <span className="text-[4px] sm:text-[6px] px-1 py-[1px] rounded bg-primary/20 text-primary font-medium leading-none">
+                    Today
+                  </span>
+                )}
+              </div>
+
+              {/* Summary */}
+              {entries.length > 0 ? (
+                <div className="flex flex-col gap-[2px] mt-1 overflow-hidden">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] sm:text-xs font-medium text-primary leading-none truncate">
+                      {Number(totalLitres.toFixed(2))} L used
+                    </span>
+                    <span className="px-1 rounded bg-yellow-500/20 text-yellow-600 text-[6px] sm:text-[8px] leading-none">
+                      {entries.length} Batch{entries.length > 1 ? "es" : ""}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-[6px] sm:text-[8px] text-muted-foreground">
+                  –
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+
+function CalendarGridSkeleton() {
+  return (
+    <Card className="p-1 sm:p-4 shadow-md bg-zinc-100 animate-pulse">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-md bg-muted" />
+        <div className="h-5 w-24 sm:w-32 bg-muted rounded" />
+        <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-md bg-muted" />
+      </div>
+
+      {/* WEEKDAY NAMES */}
+      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="h-3 w-full bg-muted rounded" />
+        ))}
+      </div>
+
+      {/* GRID */}
+      <div className="grid grid-cols-7 gap-[4px] sm:gap-2">
+        {/* 42 skeleton date cells (6 rows × 7 columns) */}
+        {Array.from({ length: 42 }).map((_, i) => (
+          <div
+            key={i}
+            className="
+              rounded-lg border p-1.5 sm:p-2
+              h-[60px] sm:h-24
+              bg-card flex flex-col justify-between
+            "
+          >
+            <div className="flex justify-between">
+              <div className="h-3 w-3 bg-muted rounded" />
+              <div className="h-3 w-5 bg-muted rounded" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <div className="h-2 w-10 bg-muted rounded" />
+              <div className="flex gap-1">
+                <div className="h-2 w-3 bg-muted rounded" />
+                <div className="h-2 w-3 bg-muted rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }

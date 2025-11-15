@@ -517,7 +517,7 @@ function CalendarGrid({
               key={day}
               onClick={() => setSelectedDate(dateKey)}
               className={`
-                rounded-lg border p-1.5 sm:p-2
+                rounded-md border p-1.5 sm:p-2
                 h-[60px] sm:h-24
                 flex flex-col justify-between
                 cursor-pointer transition
@@ -535,7 +535,7 @@ function CalendarGrid({
                 </span>
 
                 {isToday && (
-                  <span className="text-[8px] sm:text-[10px] px-1 py-[1px] rounded bg-primary/20 text-primary font-medium leading-none">
+                  <span className="text-[4px] sm:text-[6px] px-1 py-[1px] rounded bg-primary/20 text-primary font-medium leading-none">
                     Today
                   </span>
                 )}

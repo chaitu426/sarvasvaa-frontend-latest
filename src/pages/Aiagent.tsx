@@ -112,9 +112,9 @@ export default function SQLAgentChat() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background text-gray-100 overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-zinc-800 text-gray-100 overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#1e1e1e] bg-background/90 backdrop-blur-md">
+      <header className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#1e1e1e] bg-zinc-800/90 backdrop-blur-md">
         <h1 className="text-base ml-10 font-semibold text-gray-100 tracking-wide">
           SQL AI
         </h1>
@@ -137,7 +137,7 @@ export default function SQLAgentChat() {
       </header>
 
       {/* Chat area */}
-      <main className="flex-1 overflow-y-auto px-2 sm:px-5 md:px-7 py-4 sm:py-6 flex flex-col space-y-4 scrollbar-thin scrollbar-thumb-[#2a2a2a] scrollbar-track-transparent">
+      <main className="flex-1  overflow-y-auto px-2 sm:px-5 md:px-7 py-4 sm:py-6 flex flex-col space-y-4 scrollbar-thin scrollbar-thumb-[#2a2a2a] scrollbar-track-transparent">
         <AnimatePresence>
           {messages.length === 0 && !loading && (
             <motion.div
@@ -199,7 +199,7 @@ export default function SQLAgentChat() {
       </main>
 
       {/* Input area */}
-      <div className="sticky bottom-0 left-0 w-full bg-background backdrop-blur-lg  p-2 sm:p-4">
+      <div className="sticky bottom-0 left-0 w-full bg-zinc-800/90 backdrop-blur-lg  p-2 sm:p-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 max-w-3xl mx-auto">
           <input
             type="text"
