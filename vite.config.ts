@@ -17,9 +17,13 @@ export default defineConfig(({ mode }) => ({
 
     VitePWA({
       registerType: "autoUpdate",
+      workbox: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+      },
       manifest: {
         name: "Sarvasvaa",
         short_name: "Sarvasvaa",
+        
         start_url: "/",
         display: "standalone",
         background_color: "#ffffff",
